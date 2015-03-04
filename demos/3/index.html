@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   
+   <title>More Ray Tracing | Graphics - Jugal Manjeshwar</title>
+   <link rel="stylesheet" type="text/css" href="../../css/normalize.css">
+   <link rel="stylesheet" type="text/css" href="../../css/style.css">
+
+</head>
+<body class="demo">
+   <div class="title row">
+      <div class="col"><a href="../../" class="ico-home"></a></div> 
+      <h1 class="col">More Ray Tracing</h1>
+      <div class="col-right row">
+      <div class="col">Specular model</div> 
+      <div class="col row radio-group">
+         <div class="col">
+            <input type="radio" class="radio" id="specular1" name="specular" value="0" checked>
+            <label for="specular1">Phong</label>
+         </div>
+
+         <div class="col">
+            <input type="radio" class="radio" id="specular2" name="specular" value="1">
+            <label for="specular2">Blinn</label>
+         </div>
+         
+      </div>
+
+      <div class="col">
+         <input type="checkbox" class="radio" id="shadows1" name="shadows" value="0" checked>
+         <label for="shadows1">Shadows</label>
+      </div>
+
+      <div class="col">
+         <input type="checkbox" class="radio" id="reflection1" name="reflection" value="0" checked>
+         <label for="reflection1">Reflection</label>
+      </div>
+
+      <div class="col">
+         <input type="checkbox" class="radio" id="boolInter1" name="boolInter" value="0">
+         <label for="boolInter1">Boolean intersection</label>
+      </div>
+
+      </div>
+   </div>
+   <canvas id='mainCanvas' class="canvas"></canvas>
+
+<script type="text/javascript" src="https://code.jquery.com/jquery-1.11.2.min.js"></script>
+<script type="text/javascript">
+   var _params = [
+      {name: 'uModel', value: 0},
+      {name: 'uShadows', value: 1},
+      {name: 'uReflections', value: 1},
+      {name: 'uBoolInter', value: 0}
+   ];
+
+   $('input:radio[name="specular"]').change(function() {
+        if ($(this).is(':checked')) {
+            _params[0].value = +$(this).val();
+        }
+   });
+
+   $('#shadows1').change(function() {
+      _params[1].value = $(this).prop("checked") ? 1 : 0;
+   });
+
+   $('#reflection1').change(function() {
+      _params[2].value = $(this).prop("checked") ? 1 : 0;
+   });
+
+   $('#boolInter1').change(function() {
+      _params[3].value = $(this).prop("checked") ? 1 : 0;
+   });
+
+</script>
+<script src="lib.js"></script>
+<script id='my_vertex_shader' type='x-shader/x-vertex'>
+   attribute vec3 aPosition;
+   varying   vec3 vPosition;
+   void main() {
+      gl_Position = vec4(aPosition, 1.0);
+      vPosition = aPosition;
+   }
+</script>
+
+<script id='my_fragment_shader' type='x-shader/x-fragment'>
+   precision highp float;
+   uniform float uTime;
+   uniform vec3  uCursor;
+   uniform int   uModel;
+   uniform int   uShadows;
+   uniform int   uReflections;
+   uniform int   uBoolInter;
+   varying vec3  vPosition;
+
+   const int numSpheres = 6, numLights = 2;
+   vec4 sphere[numSpheres], ss;
+   vec4 material[numSpheres], mm;
+   float minT;
+
+   vec3 Lrgb[numLights];
+   vec3 Ldir[numLights];
+
+   const float PI = 3.1415926535897932384626433832795;
+   const float OBSCURED = 10000.;
+
+   vec4  visibleSphere;
+   vec3  visibleMaterial;
+   float visibleT;
+
+
+   void setupLights() {
+      Lrgb[0] = vec3(1.0, 0.5, 0.0);
+      Lrgb[1] = vec3(0.4, 0.7, 1.0);
+
+      Ldir[0] = normalize(vec3(-.5, -.5, -.3));
+      Ldir[1] = normalize(vec3(uCursor.x, uCursor.y, .5));
+   }
+
+   void setupSpheres() {
+      material[0] = vec4(255./255., 195./255.,  54./255.,  10.);
+      material[1] = vec4( 29./255., 204./255., 163./255., 100.);
+      material[2] = vec4(242./255.,  34./255.,  72./255., 200.);
+      material[3] = vec4( 77./255.,  97./255., 255./255., 300.);
+      material[4] = vec4( 20./255.,  20./255.,  20./255., 50.);
+      material[5] = vec4(240./255., 245./255., 245./255.,  10.);
+
+      sphere[0] = vec4(0., 0., -1.4, .15);
+      for (int i = 1 ; i < numSpheres ; i++) {
+         sphere[i] = vec4(cos(float(6-i) * PI / 5.) * .3 * cos(uTime * 0.8 + float(i) * PI / 2.), sin(float(i) * PI / 5.) * .3 * cos(uTime * 0.8 + float(6-i) * PI / 2.), -1.4 + .2 * sin(uTime * 0.8 + float(i) * PI / 2.), .05);   
+      }
+   }
+
+   float raySphere(vec3 V, vec3 W, vec4 s) {
+      float b = 2. * dot(V -= s.xyz, W);
+      float c = dot(V, V) - s.w * s.w;
+      float d = b * b - 4. * c;
+      return d < 0. ? 1000. : (-b - sqrt(d)) / 2.;
+   }
+
+   void findSphere(vec3 V, vec3 W) {
+      float t;
+      minT = 1000.;
+      for( int i = 0; i < numSpheres; i++ ) {
+         if( (t = raySphere(V, W, sphere[i])) > 0. && t < minT ) {
+            minT = t;
+            ss = sphere[i];
+            mm = material[i];
+         }
+      }
+   }
+
+   vec3 shadeSphere(vec3 W, vec3 S, vec4 s, vec4 m) {
+      vec3 normal = (S - s.xyz) / s.w;
+      vec3 _W = 2. * dot(normal, (-W)) * normal - (-W);
+      vec3 _V = S + .01 * _W;
+      vec3 color = m.rgb * .15;
+      
+      for( int i = 0; i < numLights; i++ ) {
+         findSphere(S + .01 * Ldir[i], Ldir[i]);
+         if(uShadows == 1 && minT != 1000.) {
+            continue;
+         }
+         float diffuse =  pow( max( 0., dot( Ldir[i], normal ) ), 1.5 );
+         float specular = 0.;
+
+         if(uModel == 0) {
+            vec3 R = 2. * dot(normal, Ldir[i]) * normal - Ldir[i];
+            specular = pow( max( 0., dot( -W, R ) ), m.a);
+         }
+         else {
+            vec3 H = normalize(-W + Ldir[i]);
+            specular = pow( max( 0., dot( normal, H ) ), 3. * m.a);
+         }
+         color += Lrgb[i] * ( m.rgb * diffuse + min(1., m.a / 20.) * specular );
+
+         if(uReflections == 1) {
+            findSphere(_V, _W);
+            vec3 _S = _V + _W * minT;
+            vec3 _normal = (_S - ss.xyz)/ss.w;
+            vec3 Rprime = _W - 2. * _normal * dot(_W, _normal);
+
+            if(minT != 1000.) {
+               findSphere(_S + .01 * Ldir[i], Ldir[i]);
+               if( minT == 1000. ) {
+                  float _diffuse =  pow( max( 0., dot( Ldir[i], _normal ) ), 1.5 );
+                  float _specular = 0.;
+                  if(uModel == 0) {
+                     vec3 R = 2. * dot(normal, Ldir[i]) * normal - Ldir[i];
+                     _specular = pow( max( 0., dot( -W, R ) ), mm.a);
+                  }
+                  else {
+                     vec3 H = normalize(-W + Ldir[i]);
+                     _specular = pow( max( 0., dot( normal, H ) ), 3. * mm.a);
+                  }  
+                  color += Lrgb[i] * (.4 * mm.rgb * _diffuse + min(1., mm.a / 20.) * _specular );                
+               }
+ 
+            }
+         }
+         
+      }
+      return color;
+   }
+
+
+   vec3 rayTrace(vec3 V, vec3 W) {
+      findSphere(V, W);
+      if( minT == 1000. ) {
+         return vec3(0., 0., 0.);
+      }
+      return shadeSphere(W, V + W * minT, ss, mm);
+   }
+
+   void main() {
+      setupLights();
+      setupSpheres();
+
+      vec3 W = normalize(vec3(vPosition.x, vPosition.y, -3.5));
+      gl_FragColor = vec4(sqrt(rayTrace(vec3(0., 0., 0.), W)), 1.);
+   }
+
+</script>
+
+<script>
+start_gl('mainCanvas', document.getElementById('my_vertex_shader'  ).innerHTML,
+                    document.getElementById('my_fragment_shader').innerHTML);
+</script>
+
+</body>
+</html>

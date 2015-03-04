@@ -124,12 +124,13 @@ function gl_init(gl, vertexShader, fragmentShader) {
 
 	// Get the address in the fragment shader of each of my uniform variables.
 
-	['uTime','uCursor'].forEach(function(name) {
+	['uTime','uCursor', 'uModel', 'uShadows', 'uReflections', 'uBoolInter'].forEach(function(name) {
 		gl[name] = gl.getUniformLocation(program, name);
 	});
 
 }
 
+var _params = _params || [];
 
 // Update is called once per animation frame.
 
@@ -140,6 +141,10 @@ function gl_update(gl) {
 	gl.uniform1f(gl.uTime  , time);                                  // in fragment shader.
 	gl.uniform3f(gl.uCursor, gl.cursor.x, gl.cursor.y, gl.cursor.z);
 
+	for( var i = 0; i < _params.length; i++ ) {
+		var param = _params[i];
+		gl.uniform1i(gl[param.name], param.value);
+	} 
 	gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);                            // Render the square.
 	requestAnimFrame(function() { gl_update(gl); });                   // Animate.
 }
