@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   
+   <title>Even More Ray Tracing | Graphics - Jugal Manjeshwar</title>
+   <link rel="stylesheet" type="text/css" href="../../css/normalize.css">
+   <link rel="stylesheet" type="text/css" href="../../css/style.css">
+
+</head>
+<body class="demo">
+   <div class="title row">
+      <div class="col"><a href="../../" class="ico-home"></a></div>
+      <h1 class="col">Even More Ray Tracing</h1>
+   </div>
+   <canvas id='mainCanvas' class="canvas"></canvas>
+   
+<script src="../../js/lib.js"></script>
+<script id='my_vertex_shader' type='x-shader/x-vertex'>
+   attribute vec3 aPosition;
+   varying   vec3 vPosition;
+   void main() {
+      gl_Position = vec4(aPosition, 1.0);
+      vPosition = aPosition;
+   }
+</script>
+
+<script id='my_fragment_shader' type='x-shader/x-fragment'>
+
+   precision highp float;
+   uniform float uTime;
+   uniform vec3  uCursor;
+   varying vec3  vPosition;
+
+   #define PLANE 0x000
+   #define SHAPE_BOX 0x001
+   #define SHAPE_SPHERE 0x002
+   #define SHAPE_CYLINDER 0x003
+
+   struct Shape {
+      vec4 p;
+      vec3 s;
+      vec4 m;
+      float sP;
+      int type;
+   };
+
+   const int numShapes = 1, numLights = 2;
+   Shape shapes[numShapes];
+   float minT, minTOut;
+
+   vec3 Lrgb[numLights];
+   vec3 Ldir[numLights];
+
+   const float PI = 3.1415926535897932384626433832795;
+
+   void setupLights() {
+      Lrgb[0] = vec3(1.0, 0.5, 0.0);
+      Lrgb[1] = vec3(0.4, 0.7, 1.0);
+
+      Ldir[0] = normalize(vec3(-.5, -.5, 0.5));
+      Ldir[1] = normalize(vec3(uCursor.x, uCursor.y, 1. - 2. * dot(uCursor, uCursor)));
+   }
+
+   Shape createBox(vec3 pos, vec3 scale, vec4 m, float sP) {
+      return Shape(vec4(pos, 1.), scale, m, sP, SHAPE_BOX);
+   }
+
+   Shape createSphere(vec3 pos, float r, vec4 m, float sP) {
+      return Shape(vec4(pos, r), vec3(r, r, r), m, sP, SHAPE_SPHERE);     
+   }
+
+   void setupShapes() {
+      shapes[0] = createBox( vec3(0., -3., 0.), 
+         vec3(4., 0., 0.), 
+         vec4(240./255., 245./255., 245./255.,  1.5), 
+         100. );
+
+/*      shapes[1] = createSphere( vec3(0., 0., 0.), 
+         1., 
+         vec4(242./255.,  34./255.,  72./255., 0.), 
+         100. );*/
+   }
+
+   float raySphere(vec3 V, vec3 W, vec4 s) {
+      float b = 2. * dot(V -= s.xyz, W);
+      float c = dot(V, V) - s.w * s.w;
+      float d = b * b - 4. * c;
+      return d < 0. ? 1000. : (-b - sqrt(d)) / 2.;
+   }
+
+   float rayPlane(vec3 V, vec3 W, vec4 p) {
+      return -( dot( p.xyz, V ) + p.w ) / dot( p.xyz, W );
+   }
+
+   vec3 shadeShape(vec3 W, vec3 S, vec4 s, vec4 m) {
+      vec3 normal = normalize(s.xyz);
+      vec3 color = m.rgb * .15;
+      for( int i = 0; i < numLights; i++ ) {
+         float diffuse =  pow( max( 0., dot( Ldir[i], normal ) ), 1.5 );
+         color += Lrgb[i] * ( m.rgb * diffuse );
+      }
+      return color;
+   }
+
+/*   void findSphere(vec3 V, vec3 W) {
+      float t;
+      minT = 1000.;
+      for( int i = 0; i < numSpheres; i++ ) {
+         if( (t = raySphere(V, W, sphere[i])) > 0. && t < minT ) {
+            minT = t;
+            ss = sphere[i];
+            mm = material[i];
+         }
+      }
+   }*/
+
+/*   vec3 shadeShape(vec3 W, vec3 S, vec4 s, vec4 m) {
+      vec3 normal = normalize(p.xyz);
+      vec3 color = m.rgb * .15;
+      for( int i = 0; i < numLights; i++ ) {
+         float diffuse =  pow( max( 0., dot( Ldir[i], normal ) ), 1.5 );
+         color += Lrgb[i] * ( m.rgb * diffuse );
+      }
+      return color;
+
+      vec3 normal = (S - s.xyz) / s.w;
+      vec3 _W = 2. * dot(normal, (-W)) * normal - (-W);
+      vec3 _V = S + .01 * _W;
+      vec3 color = m.rgb * .15;
+      
+      for( int i = 0; i < numLights; i++ ) {
+         findSphere(S + .01 * Ldir[i], Ldir[i]);
+         if(uShadows == 1 && minT != 1000.) {
+            continue;
+         }
+         float diffuse =  pow( max( 0., dot( Ldir[i], normal ) ), 1.5 );
+         float specular = 0.;
+
+         if(uModel == 0) {
+            vec3 R = 2. * dot(normal, Ldir[i]) * normal - Ldir[i];
+            specular = pow( max( 0., dot( -W, R ) ), m.a);
+         }
+         else {
+            vec3 H = normalize(-W + Ldir[i]);
+            specular = pow( max( 0., dot( normal, H ) ), 3. * m.a);
+         }
+         color += Lrgb[i] * ( m.rgb * diffuse + min(1., m.a / 20.) * specular );
+
+         if(uReflections == 1) {
+            findSphere(_V, _W);
+            vec3 _S = _V + _W * minT;
+            vec3 _normal = (_S - ss.xyz)/ss.w;
+            vec3 Rprime = _W - 2. * _normal * dot(_W, _normal);
+
+            if(minT != 1000.) {
+               findSphere(_S + .01 * Ldir[i], Ldir[i]);
+               if( minT == 1000. ) {
+                  float _diffuse =  pow( max( 0., dot( Ldir[i], _normal ) ), 1.5 );
+                  float _specular = 0.;
+                  if(uModel == 0) {
+                     vec3 R = 2. * dot(normal, Ldir[i]) * normal - Ldir[i];
+                     _specular = pow( max( 0., dot( -W, R ) ), mm.a);
+                  }
+                  else {
+                     vec3 H = normalize(-W + Ldir[i]);
+                     _specular = pow( max( 0., dot( normal, H ) ), 3. * mm.a);
+                  }  
+                  color += Lrgb[i] * (.4 * mm.rgb * _diffuse + min(1., mm.a / 20.) * _specular );                
+               }
+ 
+            }
+         }
+         
+      }
+      return color;
+   }*/
+
+
+   vec3 rayTrace(vec3 V, vec3 W) {
+      vec4 foundShape, foundMaterial;
+      int foundType;
+
+      for(int j = 0; j < numShapes; j++) {
+         Shape s = shapes[j];
+
+         if(s.type == SHAPE_BOX) {
+            vec4 planes[6];
+            planes[0] = vec4( 1., 0., 0., -s.s.x - s.p.x);
+            planes[1] = vec4(-1., 0., 0., -s.s.x + s.p.x);
+            planes[2] = vec4( 0., 1., 0., -s.s.y - s.p.y);
+            planes[3] = vec4( 0.,-1., 0., -s.s.y + s.p.y);
+            planes[4] = vec4( 0., 0., 1., -s.s.z - s.p.z);
+            planes[5] = vec4( 0., 0.,-1., -s.s.z + s.p.z); 
+            vec4 pp = planes[0];
+
+            float t, tIn, tOut, minT = 0., minTOut = 1000.;
+
+            for( int i = 0; i < 6; i++ ) {
+               t = rayPlane(V, W, planes[i]);
+               float r = dot(planes[i].xyz, W);
+               if( r < 0.) {
+                  tIn = t;
+                  tOut = 1000.;
+               }
+               else if( r > 0. ) {
+                  tIn = 0.;
+                  tOut = t;
+               }
+               else {
+                  if( dot(planes[i].xyz, V) + planes[i].w <= 0.) {
+                     tIn = 0.;
+                     tOut = 1000.;
+                  }
+               }
+
+               if( tIn > minT) {
+                  pp = planes[i];
+                  minT = tIn;
+               }
+
+               if( tOut < minTOut ) {
+                  minTOut = tOut;
+               }         
+            }
+
+            if ( minT < minTOut ){
+               return shadeShape(W, V + minT * W, pp, s.m);
+            }
+            return vec3(0., 0., 0.);           
+         }
+         else if(s.type == SHAPE_SPHERE) {
+            float t;
+            if( (t = raySphere(V, W, s.p)) > 0. && t < minT ) {
+               minT = t;
+               if( minT == 1000. ) {
+                  return vec3(0., 0., 0.);
+               }
+               return shadeShape(W, V + W * minT, s.p, s.m);
+            }
+         }
+      }
+      return vec3(0., 0., 0.);
+
+   }
+
+   void main() {
+      setupLights();
+      setupShapes();
+
+      vec3 W = normalize(vec3(vPosition.x, vPosition.y, -2.5));
+      gl_FragColor = vec4(sqrt(rayTrace(vec3(0., 0., 15.), W)), 1.);
+   }
+
+/*   precision highp float;
+   uniform float uTime;
+   uniform vec3  uCursor;
+   uniform int   uModel;
+   uniform int   uShadows;
+   uniform int   uReflections;
+   uniform int   uBoolInter;
+   varying vec3  vPosition;
+
+   const int numSpheres = 4, numLights = 2;
+   vec4 sphere[numSpheres], ss;
+   vec4 material[numSpheres], mm;
+   float minT;
+
+   vec3 Lrgb[numLights];
+   vec3 Ldir[numLights];
+
+   vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+   vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
+   vec4 permute(vec4 x) { return mod289(((x*34.0)+1.0)*x); }
+   vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
+   vec3 fade(vec3 t) { return t*t*t*(t*(t*6.0-15.0)+10.0); }
+
+   float noise(vec3 P) {
+      vec3 i0 = mod289(floor(P)), i1 = mod289(i0 + vec3(1.0));
+      vec3 f0 = fract(P), f1 = f0 - vec3(1.0), f = fade(f0);
+      vec4 ix = vec4(i0.x, i1.x, i0.x, i1.x), iy = vec4(i0.yy, i1.yy);
+      vec4 iz0 = i0.zzzz, iz1 = i1.zzzz;
+      vec4 ixy = permute(permute(ix) + iy), ixy0 = permute(ixy + iz0), ixy1 = permute(ixy + iz1);
+      vec4 gx0 = ixy0 * (1.0 / 7.0), gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+      vec4 gx1 = ixy1 * (1.0 / 7.0), gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+      gx0 = fract(gx0); gx1 = fract(gx1);
+      vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0), sz0 = step(gz0, vec4(0.0));
+      vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1), sz1 = step(gz1, vec4(0.0));
+      gx0 -= sz0 * (step(0.0, gx0) - 0.5); gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+      gx1 -= sz1 * (step(0.0, gx1) - 0.5); gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+      vec3 g0 = vec3(gx0.x,gy0.x,gz0.x), g1 = vec3(gx0.y,gy0.y,gz0.y),
+         g2 = vec3(gx0.z,gy0.z,gz0.z), g3 = vec3(gx0.w,gy0.w,gz0.w),
+         g4 = vec3(gx1.x,gy1.x,gz1.x), g5 = vec3(gx1.y,gy1.y,gz1.y),
+         g6 = vec3(gx1.z,gy1.z,gz1.z), g7 = vec3(gx1.w,gy1.w,gz1.w);
+      vec4 norm0 = taylorInvSqrt(vec4(dot(g0,g0), dot(g2,g2), dot(g1,g1), dot(g3,g3)));
+      vec4 norm1 = taylorInvSqrt(vec4(dot(g4,g4), dot(g6,g6), dot(g5,g5), dot(g7,g7)));
+      g0 *= norm0.x; g2 *= norm0.y; g1 *= norm0.z; g3 *= norm0.w;
+      g4 *= norm1.x; g6 *= norm1.y; g5 *= norm1.z; g7 *= norm1.w;
+      vec4 nz = mix(vec4(dot(g0, vec3(f0.x, f0.y, f0.z)), dot(g1, vec3(f1.x, f0.y, f0.z)),
+           dot(g2, vec3(f0.x, f1.y, f0.z)), dot(g3, vec3(f1.x, f1.y, f0.z))),
+         vec4(dot(g4, vec3(f0.x, f0.y, f1.z)), dot(g5, vec3(f1.x, f0.y, f1.z)),
+           dot(g6, vec3(f0.x, f1.y, f1.z)), dot(g7, vec3(f1.x, f1.y, f1.z))), f.z);
+      return 2.2 * mix(mix(nz.x,nz.z,f.y), mix(nz.y,nz.w,f.y), f.x);
+   }
+
+   float turbulence(vec3 v) {
+      float sum = 0.0;
+      for (int i = 0; i < 10; i++) {
+      float pow2 = pow(2.0, float(i));
+         sum += abs(noise(v * pow2)) / pow2;
+      }
+      return sum;
+   }
+
+   void setupLights() {
+      Lrgb[0] = vec3(1.0, 0.5, 0.0);
+      Lrgb[1] = vec3(0.4, 0.7, 1.0);
+
+      Ldir[0] = normalize(vec3(-.5, -.5, -.3));
+      Ldir[1] = normalize(vec3(uCursor.x, uCursor.y, 1. - 2. * dot(uCursor, uCursor)));
+   }
+
+   void setupSpheres() {
+      material[0] = vec4(150./255., 180./255.,  190./255.,  10.);
+      material[1] = vec4( 29./255., 204./255., 163./255., 100.);
+      material[2] = vec4(242./255.,  34./255.,  72./255., 200.);
+      material[3] = vec4( 77./255.,  97./255., 255./255., 300.);
+
+      sphere[0] = vec4( 0., 0., -1.4, .15);
+      sphere[1] = vec4( .3, 0.,  -2., .15);
+      sphere[2] = vec4( 0., 0.,  -2., .15);
+      sphere[3] = vec4(-.3, 0.,   -2, .15);
+   }
+
+   float raySphere(vec3 V, vec3 W, vec4 s) {
+      float b = 2. * dot(V -= s.xyz, W);
+      float c = dot(V, V) - s.w * s.w;
+      float d = b * b - 4. * c;
+      float r1 = (-b - sqrt(d)) / 2.,
+         r2 = (-b + sqrt(d)) / 2.;
+      return d < 0. ? 1000. : min(r1, r2) >= 0. ? min(r1, r2) : max(r1, r2);
+   }
+
+   void findSphere(vec3 V, vec3 W) {
+      float t;
+      minT = 1000.;
+      for( int i = 0; i < numSpheres; i++ ) {
+         if( (t = raySphere(V, W, sphere[i])) > 0. && t < minT ) {
+            minT = t;
+            ss = sphere[i];
+            mm = material[i];
+         }
+      }
+   }
+
+   vec3 shadeSphere(vec3 W, vec3 S, vec4 s, vec4 m) {
+      vec3 normal = (S - s.xyz) / s.w;
+      vec3 _W = 2. * dot(normal, (-W)) * normal - (-W);
+      vec3 _V = S + .01 * _W;
+      vec3 color = m.rgb * .15;
+      
+      for( int i = 0; i < numLights; i++ ) {
+         findSphere(S + .01 * Ldir[i], Ldir[i]);
+         if(minT != 1000.) {
+            continue;
+         }
+         float diffuse =  pow( max( 0., dot( Ldir[i], normal ) ), 1.5 );
+         float specular = 0.;
+
+         if(uModel == 0) {
+            vec3 R = 2. * dot(normal, Ldir[i]) * normal - Ldir[i];
+            specular = pow( max( 0., dot( -W, R ) ), m.a);
+         }
+         else {
+            vec3 H = normalize(-W + Ldir[i]);
+            specular = pow( max( 0., dot( normal, H ) ), 3. * m.a);
+         }
+         color += Lrgb[i] * ( m.rgb * diffuse + min(1., m.a / 20.) * specular );
+
+         if(uReflections == 1) {
+            findSphere(_V, _W);
+            vec3 _S = _V + _W * minT;
+            vec3 _normal = (_S - ss.xyz)/ss.w;
+            vec3 Rprime = _W - 2. * _normal * dot(_W, _normal);
+
+            if(minT != 1000.) {
+               findSphere(_S + .01 * Ldir[i], Ldir[i]);
+               if( minT == 1000. ) {
+                  float _diffuse =  pow( max( 0., dot( Ldir[i], _normal ) ), 1.5 );
+                  float _specular = 0.;
+                  if(uModel == 0) {
+                     vec3 R = 2. * dot(normal, Ldir[i]) * normal - Ldir[i];
+                     _specular = pow( max( 0., dot( -W, R ) ), mm.a);
+                  }
+                  else {
+                     vec3 H = normalize(-W + Ldir[i]);
+                     _specular = pow( max( 0., dot( normal, H ) ), 3. * mm.a);
+                  }  
+                  color += Lrgb[i] * (.4 * mm.rgb * _diffuse + min(1., mm.a / 20.) * _specular );                
+               }
+ 
+            }
+         }
+         
+      }
+      return color;
+   }
+
+
+   vec3 rayTrace(vec3 V, vec3 W) {
+      findSphere(V, W);
+      if( minT == 1000. ) {
+         return vec3(0., 0., 0.);
+      }
+      return shadeSphere(W, V + W * minT, ss, mm);
+   }
+
+   void main() {
+      setupLights();
+      setupSpheres();
+
+      vec3 W = normalize(vec3(vPosition.x, vPosition.y, -3.5));
+      gl_FragColor = vec4(sqrt(rayTrace(vec3(0., 0., 0.), W)), 1.);
+   }*/
+/*   precision highp float;
+   uniform float uTime;
+   uniform vec3  uCursor;
+   varying vec3  vPosition;
+
+   #define PLANE 0x000
+   #define SHAPE_CUBE 0x001
+   #define SHAPE_SPHERE 0x002
+   #define SHAPE_CYLINDER 0x003
+
+   const int numShapes = 1, numLights = 2;
+   struct Shape {
+      vec4 p;
+      int type;
+   };
+
+   Shape shapes[numShapes], ss;
+   vec4 materials[numShapes], mm;
+   float minT, maxTIn, minTOut;
+
+   vec3 Lrgb[numLights];
+   vec3 Ldir[numLights];
+
+   void setupLights() {
+      Lrgb[0] = vec3(1.0, 0.5, 0.0);
+      Lrgb[1] = vec3(0.4, 0.7, 1.0);
+
+      Ldir[0] = normalize(vec3(-.5, -.5, -.3));
+      Ldir[1] = normalize(vec3(uCursor.x, uCursor.y, .5));
+   }
+
+   void setupShapes() {
+      //materials[0] = materials[1] = materials[2] = vec4(255./255., 255./255., 255./255.,  0.);
+      materials[0] = vec4(255./255., 255./255., 255./255.,  0.);
+      shapes[0] = Shape(vec4( 0., 0., 0., 1.), SHAPE_CUBE);
+      // shapes[1] = Shape(vec4(-1., 0., 0., -1. - c.x), SHAPE_PLANE);
+      // shapes[2] = Shape(vec4( 0., 1., 0., -1. + c.y), SHAPE_PLANE);
+      // shapes[3] = Shape(vec4( 0.,-1., 0., -1. - c.y), SHAPE_PLANE);
+      // shapes[4] = Shape(vec4( 0.,-1., 0., -1. - c.y), SHAPE_PLANE);
+      // shapes[5] = Shape(vec4( 0.,-1., 0., -1. - c.y), SHAPE_PLANE);
+      // shapes[1] = Shape(vec4(1., 0., -1., 0.), SHAPE_PLANE); 
+      // shapes[1] = Shape(vec4(0., 1., 0., 0.), SHAPE_PLANE); 
+   }
+
+
+   float rayShape(vec3 V, vec3 W, vec4 s, int type) {
+      if(type == SHAPE_SPHERE) {
+         float b = 2. * dot(V -= s.xyz, W);
+         float c = dot(V, V) - s.w * s.w;
+         float d = b * b - 4. * c;
+         return d < 0. ? 1000. : (-b - sqrt(d)) / 2.;          
+      }
+      return -( dot( s.xyz, V ) + s.w ) / dot( s.xyz, W );
+   }
+
+   void findShape(vec3 V, vec3 W) {
+      float t, tIn, tOut;
+      minT = 1000.;
+      for( int i = 0; i < numShapes; i++ ) {
+         if(shapes[i].type == SHAPE_SPHERE) {
+            t = rayShape(V, W, shapes[i].p, shapes[i].type);
+            if( t < 0. && t < minT ) {
+               minT = t;
+               ss = shapes[i];
+               mm = materials[i];
+            }
+         }
+         else if(shapes[i].type == SHAPE_CUBE) {
+            vec4 planes[6], o = shapes[i].p;
+            planes[0] = vec4( 1., 0., 0., -1.*-uCursor.x);
+            planes[1] = vec4(-1., 0., 0., -1.*uCursor.x);
+            planes[2] = vec4( 0., 1., 0., -1.*uCursor.y);
+            planes[3] = vec4( 0.,-1., 0., -1.*-uCursor.y);
+            planes[4] = vec4( 0., 0., 1., -1.);
+            planes[5] = vec4( 0., 0.,-1., -1.);
+            mm = materials[i];
+
+            maxTIn = 0.;
+            minTOut = 1000.;
+
+            for( int i = 0; i < 6; i++) {
+               t = rayShape(V, W, planes[i], PLANE);
+               float ray = dot( planes[i].xyz, W ); 
+               if (ray < 0.) {
+                  minT = tIn = t;
+                  tOut = 1000.;                  
+               }
+               else if ( ray > 0. ){  //if the ray is going out half space:
+                  tIn = 0.;
+                  minT = tOut = t;
+               }
+               else {
+                  if ( dot( planes[i].xyz, V ) + planes[i].w <= 0. ) {   //if the ray is completely inside half space:
+                     tIn = 0.; //ignore this half-space
+                     tOut = 1000.; //ignore this half-space
+                     minT = 1000.;
+                  } else {    //if the ray is completely outside half space:
+                     minT = 1000.;
+                  }
+               }
+
+               if ( tIn > maxTIn ){
+                  ss = shapes[i];
+                  maxTIn = tIn;
+               }
+
+               if ( tOut < minTOut ){
+                  minTOut = tOut;
+               }
+            }
+         }
+      }
+   }
+
+   vec3 shadeShape(vec3 W, vec3 S, Shape s, vec4 m) {
+      vec3 normal = normalize(s.p.xyz);
+      if(s.type == SHAPE_SPHERE) {
+         normal = (S - s.p.xyz) / s.p.w;
+      }
+      vec3 _W = 2. * dot(normal, (-W)) * normal - (-W);
+      vec3 _V = S + .01 * _W;
+      vec3 color = m.rgb * .15;
+
+      for( int i = 0; i < numLights; i++ ) {
+         findShape(S + .01 * Ldir[i], Ldir[i]);
+         if(minT != 1000.) {
+            continue;
+         }
+         float diffuse =  pow( max( 0., dot( Ldir[i], normal ) ), 1.5 );
+         color += Lrgb[i] * ( m.rgb * diffuse );
+      }
+      return color;
+   }
+
+   vec3 rayTrace(vec3 V, vec3 W) {
+      findShape(V, W);
+      if( minT == 1000. || maxTIn >= minTOut ) {
+         return vec3(0., 0., 0.);
+      }
+
+      if(ss.type == SHAPE_CUBE) {
+         return shadeShape(W, V + W * maxTIn, ss, mm);
+      }
+      return shadeShape(W, V + W * minT, ss, mm);
+   }
+
+   void main() {
+      setupLights();
+      setupShapes();
+
+      vec3 W = normalize(vec3(vPosition.x, vPosition.y, -1.5));
+      gl_FragColor = vec4(sqrt(rayTrace(vec3(0., 0., -5.), W)), 1.);
+   }*/
+
+/*   void setupLights() {
+      Lrgb[0] = vec3(1.0, 0.5, 0.0);
+      Lrgb[1] = vec3(0.4, 0.7, 1.0);
+
+      Ldir[0] = normalize(vec3(-.5, -.5, -.3));
+      Ldir[1] = normalize(vec3(uCursor.x, uCursor.y, .5));
+   }
+
+   void setupSpheres() {
+      material[0] = vec4(255./255., 195./255.,  54./255.,  10.);
+      material[1] = vec4( 29./255., 204./255., 163./255., 100.);
+      material[2] = vec4(242./255.,  34./255.,  72./255., 200.);
+      material[3] = vec4( 77./255.,  97./255., 255./255., 300.);
+      material[4] = vec4( 20./255.,  20./255.,  20./255., 50.);
+      material[5] = vec4(240./255., 245./255., 245./255.,  10.);
+
+      material[6] = material[7] = material[8] = vec4(255./255., 255./255., 255./255.,  0.);
+
+      planes[0] = vec4(1, 1, 0, 0);
+      planes[1] = vec4(1, -1, 0, 0);
+
+      sphere[0] = vec4(0., 0., -3.4, .15);
+      for (int i = 1 ; i < numSpheres ; i++) {
+         sphere[i] = vec4(cos(float(6-i) * PI / 5.) * .3 * cos(uTime * 0.8 + float(i) * PI / 2.), sin(float(i) * PI / 5.) * .3 * cos(uTime * 0.8 + float(6-i) * PI / 2.), -3.4 + .2 * sin(uTime * 0.8 + float(i) * PI / 2.), .05);   
+      }
+   }
+
+   float raySphere(vec3 V, vec3 W, vec4 s) {
+      float b = 2. * dot(V -= s.xyz, W);
+      float c = dot(V, V) - s.w * s.w;
+      float d = b * b - 4. * c;
+      return d < 0. ? 1000. : (-b - sqrt(d)) / 2.;
+   }
+
+   void findSphere(vec3 V, vec3 W) {
+      float t;
+      minT = 1000.;
+      for( int i = 0; i < numSpheres; i++ ) {
+         if( (t = raySphere(V, W, sphere[i])) > 0. && t < minT ) {
+            minT = t;
+            ss = sphere[i];
+            mm = material[i];
+         }
+      }
+
+      for( int i = 0; i < numPlanes; i++ ) {
+         if( (t = raySphere(V, W, planes[i])) > 0. && t < minT ) {
+            minT = t;
+            ss = sphere[i];
+            mm = material[i];
+         }
+      }
+   }
+
+   vec3 shadeSphere(vec3 W, vec3 S, vec4 s, vec4 m) {
+      vec3 normal = (S - s.xyz) / s.w;
+      vec3 _W = 2. * dot(normal, (-W)) * normal - (-W);
+      vec3 _V = S + .01 * _W;
+      vec3 color = m.rgb * .15;
+      
+      for( int i = 0; i < numLights; i++ ) {
+         findSphere(S + .01 * Ldir[i], Ldir[i]);
+         if(uShadows == 1 && minT != 1000.) {
+            continue;
+         }
+         float diffuse =  pow( max( 0., dot( Ldir[i], normal ) ), 1.5 );
+         float specular = 0.;
+
+         if(uModel == 0) {
+            vec3 R = 2. * dot(normal, Ldir[i]) * normal - Ldir[i];
+            specular = pow( max( 0., dot( -W, R ) ), m.a);
+         }
+         else {
+            vec3 H = normalize(-W + Ldir[i]);
+            specular = pow( max( 0., dot( normal, H ) ), 3. * m.a);
+         }
+         color += Lrgb[i] * ( m.rgb * diffuse + min(1., m.a / 20.) * specular );
+
+         if(uReflections == 1 && m.a > 0.) {
+            findSphere(_V, _W);
+            vec3 _S = _V + _W * minT;
+            vec3 _normal = (_S - ss.xyz)/ss.w;
+            vec3 Rprime = _W - 2. * _normal * dot(_W, _normal);
+
+            if(minT != 1000.) {
+               findSphere(_S + .01 * Ldir[i], Ldir[i]);
+               if( minT == 1000. ) {
+                  float _diffuse =  pow( max( 0., dot( Ldir[i], _normal ) ), 1.5 );
+                  float _specular = 0.;
+                  if(uModel == 0) {
+                     vec3 R = 2. * dot(normal, Ldir[i]) * normal - Ldir[i];
+                     _specular = pow( max( 0., dot( -W, R ) ), mm.a);
+                  }
+                  else {
+                     vec3 H = normalize(-W + Ldir[i]);
+                     _specular = pow( max( 0., dot( normal, H ) ), 3. * mm.a);
+                  }  
+                  color += Lrgb[i] * (.4 * mm.rgb * _diffuse + min(1., mm.a / 20.) * _specular );                
+               }
+ 
+            }
+         }
+         
+      }
+      return color;
+   }
+
+
+   vec3 rayTrace(vec3 V, vec3 W) {
+      findSphere(V, W);
+      if( minT == 1000. ) {
+         return vec3(0., 0., 0.);
+      }
+      return shadeSphere(W, V + W * minT, ss, mm);
+   }
+
+   void main() {
+      setupLights();
+      setupSpheres();
+
+      vec3 W = normalize(vec3(vPosition.x, vPosition.y, -3.5));
+      gl_FragColor = vec4(sqrt(rayTrace(vec3(0., 0., 0.), W)), 1.);
+   }*/
+</script>
+
+<script>
+start_gl('mainCanvas', document.getElementById('my_vertex_shader'  ).innerHTML,
+                    document.getElementById('my_fragment_shader').innerHTML);
+</script>
+
+</body>
+</html>
