@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   
+   <title>Introduction to matrices | Graphics - Jugal Manjeshwar</title>
+   <link rel="stylesheet" type="text/css" href="../../css/normalize.css">
+   <link rel="stylesheet" type="text/css" href="../../css/style.css">
+
+</head>
+<body class="demo">
+   <div class="title row">
+      <div class="col"><a href="../../" class="ico-home"></a></div>
+      <h1 class="col">Introduction to matrices</h1>
+      <div class="col-right row">
+         <div class="col">Models</div> 
+         <div class="col row radio-group">
+            <div class="col">
+               <input type="radio" class="radio" id="mCube" name="model" checked>
+               <label for="mCube">Cube</label>
+            </div>
+
+            <div class="col">
+               <input type="radio" class="radio" id="mOctahedron" name="model">
+               <label for="mOctahedron">Octahedron</label>
+            </div>
+
+            <div class="col">
+               <input type="radio" class="radio" id="mDodecahedron" name="model">
+               <label for="mDodecahedron">Dodecahedron</label>
+            </div>
+
+            <div class="col">
+               <input type="radio" class="radio" id="mShuttle" name="model">
+               <label for="mShuttle">Shuttle</label>
+            </div>
+
+            <div class="col">
+               <input type="radio" class="radio" id="mSlots" name="model">
+               <label for="mSlots">Slot machine</label>
+            </div>
+            
+         </div>
+
+         <div class="col">
+            <input type="checkbox" class="radio" id="bAxis" checked>
+            <label for="bAxis">Show axis</label>
+         </div>
+      </div>
+   </div>
+   <canvas id='mainCanvas' class="canvas"></canvas>
+
+   <div class="info row">
+      <div class="row col">
+         <div class="col ico ico-click"></div> <div class="col">Click and drag to rotate</div>
+      </div>
+      <div class="row col">
+         <div class="col ico ico-mousewheel"></div> <div class="col">Use mousewheel to zoom</div>
+      </div>
+   </div>
+
+   <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+   <script type="text/javascript" src="lib.js"></script>
+   <script type="text/javascript" src="main.js"></script>
+</body>
+</html>

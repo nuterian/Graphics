@@ -13,34 +13,34 @@
       <div class="col"><a href="../../" class="ico-home"></a></div> 
       <h1 class="col">More Ray Tracing</h1>
       <div class="col-right row">
-      <div class="col">Specular model</div> 
-      <div class="col row radio-group">
-         <div class="col">
-            <input type="radio" class="radio" id="specular1" name="specular" value="0" checked>
-            <label for="specular1">Phong</label>
+         <div class="col">Specular model</div> 
+         <div class="col row radio-group">
+            <div class="col">
+               <input type="radio" class="radio" id="specular1" name="specular" value="0" checked>
+               <label for="specular1">Phong</label>
+            </div>
+
+            <div class="col">
+               <input type="radio" class="radio" id="specular2" name="specular" value="1">
+               <label for="specular2">Blinn</label>
+            </div>
+            
          </div>
 
          <div class="col">
-            <input type="radio" class="radio" id="specular2" name="specular" value="1">
-            <label for="specular2">Blinn</label>
+            <input type="checkbox" class="radio" id="shadows1" name="shadows" value="0" checked>
+            <label for="shadows1">Shadows</label>
          </div>
-         
-      </div>
 
-      <div class="col">
-         <input type="checkbox" class="radio" id="shadows1" name="shadows" value="0" checked>
-         <label for="shadows1">Shadows</label>
-      </div>
+         <div class="col">
+            <input type="checkbox" class="radio" id="reflection1" name="reflection" value="0" checked>
+            <label for="reflection1">Reflection</label>
+         </div>
 
-      <div class="col">
-         <input type="checkbox" class="radio" id="reflection1" name="reflection" value="0" checked>
-         <label for="reflection1">Reflection</label>
-      </div>
-
-      <div class="col">
-         <input type="checkbox" class="radio" id="boolInter1" name="boolInter" value="0">
-         <label for="boolInter1">Boolean intersection</label>
-      </div>
+         <div class="col">
+            <input type="checkbox" class="radio" id="boolInter1" name="boolInter" value="0">
+            <label for="boolInter1">Boolean intersection</label>
+         </div>
 
       </div>
    </div>
@@ -136,19 +136,46 @@
       float b = 2. * dot(V -= s.xyz, W);
       float c = dot(V, V) - s.w * s.w;
       float d = b * b - 4. * c;
-      return d < 0. ? 1000. : (-b - sqrt(d)) / 2.;
+      float r1 = (-b - sqrt(d)) / 2.,
+            r2 = (-b + sqrt(d)) / 2.;
+      return d < 0. ? 1000. : min(r1, r2) >= 0. ? min(r1, r2) : max(r1, r2);
+   }
+
+   float raySphere2(vec3 V, vec3 W, vec4 s) {
+      float b = 2. * dot(V -= s.xyz, W);
+      float c = dot(V, V) - s.w * s.w;
+      float d = b * b - 4. * c;
+      return d < 0. ? 1000. : (-b + sqrt(d)) / 2.;
    }
 
    void findSphere(vec3 V, vec3 W) {
-      float t;
+      float tIn, tOut, maxTIn = 0., minTOut = 1000.;
       minT = 1000.;
       for( int i = 0; i < numSpheres; i++ ) {
-         if( (t = raySphere(V, W, sphere[i])) > 0. && t < minT ) {
-            minT = t;
-            ss = sphere[i];
-            mm = material[i];
+         if( (tIn = raySphere(V, W, sphere[i])) > 0. ) {
+            if(uBoolInter == 1) {
+               if(tIn > maxTIn) {
+                  minT = tIn;
+                  maxTIn = tIn;
+                  ss = sphere[i];
+                  mm = material[i];
+               }
+
+               if((tOut = raySphere2(V, W, sphere[i])) < minTOut) {
+                  minTOut = tOut;
+               }
+            }
+            else {
+               if(tIn < minT) {
+                  minT = tIn;
+                  ss = sphere[i];
+                  mm = material[i];
+               }
+            }
          }
       }
+
+
    }
 
    vec3 shadeSphere(vec3 W, vec3 S, vec4 s, vec4 m) {
