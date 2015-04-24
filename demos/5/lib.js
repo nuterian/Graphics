@@ -196,7 +196,7 @@ Shape.prototype = {
 
 /*            var t_v0 = mat.transform(v0);
             var t_v1 = mat.transform(v1);*/
-
+            
             var px0 = (width  / 2) + t_v0.x * (width / 2);
             var py0 = (height / 2) - t_v0.y * (width / 2);
             var px1 = (width  / 2) + t_v1.x * (width / 2);
