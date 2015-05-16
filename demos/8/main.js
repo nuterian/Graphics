@@ -171,7 +171,7 @@ $(function(){
 
             var grassMesh = new THREE.Mesh( grassGeometry, new THREE.MeshLambertMaterial({ color: 0x288A37}) );
             var groundMesh = new THREE.Mesh( groundGeometry, new THREE.MeshLambertMaterial({ color: 0x523E29 }) );
-            var waterMesh = new THREE.Mesh( waterGeometry, new THREE.MeshLambertMaterial({ color: 0x005EFF }) );
+            var waterMesh = new THREE.Mesh( waterGeometry, new THREE.MeshLambertMaterial({ color: 0x005EFF, transparent: true, opacity: 0.7 }) );
 
             this.scene.add(grassMesh);
             this.scene.add(groundMesh);
