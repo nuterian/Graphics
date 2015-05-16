@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+   <meta charset="UTF-8">
+   
+   <title>Introduction to three.js | Graphics - Jugal Manjeshwar</title>
+   <link href='http://fonts.googleapis.com/css?family=Roboto:400,300,700,400italic' rel='stylesheet' type='text/css'>
+   <link rel="stylesheet" type="text/css" href="../../css/normalize.css">
+   <link rel="stylesheet" type="text/css" href="../../css/style.css">
+
+<style>
+.title {
+   background-image: -o-linear-gradient(bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0) 100%);
+   background-image: -moz-linear-gradient(bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0) 100%);
+   background-image: -webkit-linear-gradient(bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0) 100%);
+   background-image: -ms-linear-gradient(bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0) 100%);
+   background-image: linear-gradient(to bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0) 100%);
+}
+
+.title h1 {
+   color: #333;
+}
+.title:hover {
+   background: transparent;
+   background-image: -o-linear-gradient(bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0.4) 100%);
+   background-image: -moz-linear-gradient(bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0.4) 100%);
+   background-image: -webkit-linear-gradient(bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0.4) 100%);
+   background-image: -ms-linear-gradient(bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0.4) 100%);
+   background-image: linear-gradient(to bottom, rgb(247, 247, 247) 0%, rgba(255, 255, 255, 0.4) 100%);
+}
+
+.ico-home {
+   background-image: url(../../img/home_black.png);
+}
+.ico.ico-click {
+    background-image: url(../../img/click_black.png);
+}
+
+input.radio:empty ~ label {
+   color: #666;
+}
+
+input.radio ~ label:hover {
+    background-color:#FFF3C2;
+    border-color:#D1B74B;
+    color: #826617;
+}
+
+input.radio:checked ~ label {
+    background-color:#666;
+    color: #fff;
+    border-color: #666;
+}
+
+.info {
+   background-color: transparent;
+   color: #666;
+   cursor: default;
+   transition: opacity 0.2s linear;
+   left:30px;
+   font-weight: 300;
+   font-size: 15px;
+}
+
+.info:hover {
+   background-color: transparent;
+}
+
+</style>
+</head>
+<body>
+  <div class="title row">
+    <div class="col"><a href="../../" class="ico-home"></a></div>
+    <h1 class="col">Introduction to three.js </h1>
+    <div class="col-right row">
+      <input id="regenBtn" type="button" class="btn" value="Generating..." disabled />
+</div>
+  </div>
+  <div id="mainCanvas"></div>
+<!--    <div class="info row">
+   <div class="col">Draw a curve by creating points and dragging them. Click <b>Paint</b> to view fractal art in the shape of your curve.</div>
+   <div class="col-right">
+      <div class="row col">
+         <div class="col ico ico-click"></div> <div class="col">Click to create or move points</div>
+      </div>
+      <div class="row col">
+         <div class="col">Right-click to delete</div>
+      </div>
+   </div>
+</div> -->
+
+  <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+  <script type="text/javascript" src="three.js"></script>
+  <script type="text/javascript" src="noise.js"></script>
+  <script type="text/javascript" src="main.js"></script>
+</body>
+</html>

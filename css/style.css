@@ -147,12 +147,32 @@ a.ico-home:hover {
 }
 
 
-label {
+label, .btn {
   width: 200px;
   border-radius: 3px;
   border: 1px solid #D1D3D4;
   font-size: 15px;
   font-weight: 300;
+}
+
+.btn {
+    color: #666;
+    background-color: #fff;
+    width: auto;
+}
+
+.btn:hover {
+    background-color: #1abc9c;
+    border-color: #1abc9c;
+    color: #fff;
+}
+
+.btn:active, .btn:focus {
+    outline: 0;
+}
+
+.btn:disabled {
+    opacity: 0.5;
 }
 
 /* hide input */
@@ -161,7 +181,7 @@ input.radio:empty {
 }
 
 /* style label */
-input.radio:empty ~ label {
+input.radio:empty ~ label, input[type="button"] {
     position: relative;
     float: left;
     line-height: 32px;
@@ -206,6 +226,10 @@ input.radio:checked ~ label {
 .radio-group .col:last-child label {
     border-top-right-radius: 4px;
     border-bottom-right-radius: 4px;
+}
+
+canvas {
+    display: block;
 }
 
 
