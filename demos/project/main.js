@@ -423,22 +423,26 @@ function detectCollision() {
 		controls.lockMoveLeft(true);	
 	}
 
-	if(cameraPosition.x < -worldHalfWidth){
-		cameraPosition.x = -worldHalfWidth;
+	if(cameraPosition.x < -worldHalfWidth + collisionRadius){
+		cameraPosition.x = -worldHalfWidth + collisionRadius;
 		controls.velocity.x = 0;
 	}
-	if(cameraPosition.x > worldHalfWidth) {
-		cameraPosition.x = worldHalfWidth;
+	if(cameraPosition.x > worldHalfWidth - collisionRadius) {
+		cameraPosition.x = worldHalfWidth - collisionRadius;
 		controls.velocity.x = 0;
 	}
-	if(cameraPosition.z > worldHalfDepth) {
-		cameraPosition.z = worldHalfDepth;
+	if(cameraPosition.z > worldHalfDepth - collisionRadius) {
+		cameraPosition.z = worldHalfDepth - collisionRadius;
 		controls.velocity.z = 0;
 	}
-	if(cameraPosition.z < -worldHalfDepth) {
-		cameraPosition.z = -worldHalfDepth;
+	if(cameraPosition.z < -worldHalfDepth + collisionRadius) {
+		cameraPosition.z = -worldHalfDepth + collisionRadius;
 		controls.velocity.z = 0;
 	}
+
+    if(cameraPosition.y < ( getScaledY(data.min)  - 50 ) * unitSize) {
+        cameraPosition.set(0, ( getScaledY(data.max)  + 50 ) * unitSize, 0);    
+    }
 }
 
 function lockMovement() {
