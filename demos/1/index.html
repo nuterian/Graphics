@@ -1,58 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
    <meta charset="UTF-8">
-   
-   <title>Introduction to Shaders | Graphics - Jugal Manjeshwar</title>
-   <link href='http://fonts.googleapis.com/css?family=Roboto:400,300,700,400italic' rel='stylesheet' type='text/css'>
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+
+   <title>Introduction to Shaders / Computer Graphics / Jugal Manjeshwar</title>
+
    <link rel="stylesheet" type="text/css" href="../../css/normalize.css">
    <link rel="stylesheet" type="text/css" href="../../css/style.css">
 
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
 </head>
+
 <body class="demo">
    <div class="title row">
-      <div class="col"><a href="../../" class="ico-home"></a></div> 
+      <div class="col"><a href="../../" class="ico-home"></a></div>
       <h1 class="col">Introduction to Shaders</h1>
    </div>
    <canvas id='mainCanvas' class="canvas"></canvas>
-   
-<script src="../../js/lib.js"></script>
-<script id='my_vertex_shader' type='x-shader/x-vertex'>
-   attribute vec3 aPosition;
-   varying   vec3 vPosition;
-   void main() {
-      gl_Position = vec4(aPosition, 1.0);
-      vPosition = aPosition;
-   }
-</script>
 
-<script id='my_fragment_shader' type='x-shader/x-fragment'>
-   precision mediump float;
-   uniform float uTime;
-   uniform vec3  uCursor;
-   varying vec3  vPosition;
-   void main() {
-      vec3 color = vec3(0., 0., 0.);
-      float x = vPosition.x;
-      float y = vPosition.y;
-      float rr = (x * x + y * y) / pow(.8, 2.);
-      float z = sqrt(1. - rr);
-      float t = .01 + .8 * max(0., x * uCursor.x + y * uCursor.y + z);
-      if( rr < 1. ) {
-         color = vec3(t  * (1. - sin(uTime)), t * sin(uTime), t * cos(uTime));
-         color.r *= 1. + .8 * sin(30. * (z + .5 * x * y + .1 * sin(5. * sin(uTime) )));
-         color.g *= 1. + .8 * sin(30. * (z + .5 * x * y + .5 * sin(3. * sin(uTime) )));
-         color.b *= 1. + .8 * sin(30. * (z + .5 * x * y + 1. * sin(1. * sin(uTime) )));
-      }
-      gl_FragColor = vec4(color, 1.);
-   }
-</script>
-
-<script>
-start_gl('mainCanvas', document.getElementById('my_vertex_shader'  ).innerHTML,
-                    document.getElementById('my_fragment_shader').innerHTML);
-</script>
-
+   <script src="../../js/lib.js"></script>
+   <script type="module">
+      const vertexShader = await fetch('vertex.glsl');
+      const fragmentShader = await fetch('fragment.glsl');
+      start_gl('mainCanvas', await vertexShader.text(), await fragmentShader.text());
+   </script>
 </body>
 </html>
-
