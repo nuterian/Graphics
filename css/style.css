@@ -1,66 +1,112 @@
 body {
-    font-family: "Helvetica Neue", 'Roboto', Arial, sans-serif;
+    font-family: 'Roboto', sans-serif;
     font-size: 14px;
     color: #111;
+}
+
+a:link, a:visited {
+    color: rgb(9, 105, 218);
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
 }
 
 .demo {
     background-color: #000;
 }
 
-.wrapper {
-    width: 1000px;
-    margin: 0 auto;
+.grid-container {
+    max-width: 1200px;
+    min-width: 400px;
+    margin: 100px auto 0;
 }
 
 .grid {
-    width: 915px;
-    margin: 0 auto;
-    margin-top: 100px;
+    max-width: 1200px;
+    min-width: 400px;
+    display: grid;
+    gap: 32px;
+    justify-items: center;
+    padding: 0 32px;
 }
 
 .grid-tile {
-    float:left;
-    width: 300px;
     height: 200px;
+    width: 300px;
     display: block;
-    margin: 5px 0 0 5px;
     filter: grayscale(100%);
-    -webkit-filter: grayscale(100%);  /* For Webkit browsers */
-    filter: gray;  /* For IE 6 - 9 */
-    -webkit-transition: all .6s ease; 
+    -webkit-filter: grayscale(100%);
+    filter: gray;
+    -webkit-transition: all .4s ease;
+    border-radius: 16px;
 }
 
 .grid-tile:hover {
     filter: grayscale(0%);
     -webkit-filter: grayscale(0%);
     filter: none;
+    transform: scale(1.05);
+}
+
+@media (min-width: 600px) {
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 900px) {
+    .grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.grid-header {
+    min-width: 600px;
+    margin-bottom: 64px;
+    padding: 0 32px;
+    text-align: center;
+}
+
+.grid-title {
+    font-size: 32px;
+    line-height: 48px;
+    font-weight: 700;
+}
+
+.grid-subtitle {
+    font-weight: 300;
+}
+
+.grid-subtitle span {
+    color: #888;
 }
 
 .title {
     position: absolute;
-    top:0;
-    left:0; right:0;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 99;
-    padding: 20px 30px;
-    background-color: rgba(0,0,0,0);
+    padding: 20px 30px 60px;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 50%, rgba(0,0,0,0) 100%);
     color: #fff;
-    font-size: 16px;
     line-height: 32px;
-    opacity: 0.5;
+    opacity: 0.6;
     transition: all 0.2s linear;
 }
 
 .title:hover {
     opacity: 1;
-    background-color: rgba(0,0,0,0.4);
+    background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0) 100%);
 }
 
 .title h1 {
-    font-size: 20px;
+    font-size: 16px;
     line-height: 32px;
-    margin:0;
-    padding:0;
+    margin: 0;
+    padding: 0;
     font-weight: 300;
     cursor: default;
 }
@@ -70,10 +116,9 @@ body {
     position: absolute;
     bottom: 15px;
     right: 0;
-    color: rgba(255,255,255, 0.6);
-    background-color: rgba(0,0,0,0.8);
+    color: rgba(255, 255, 255, 0.6);
+    background-color: rgba(0, 0, 0, 0.8);
     padding: 15px;
-    font-size: 14px;
     line-height: 24px;
     opacity: 0.6;
     border-radius: 3px;
@@ -108,7 +153,10 @@ body {
     height: 600px;
     margin: auto;
     position: absolute;
-    top: 0; left: 0; bottom: 0; right: 0;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
 }
 
 .subtitle {
@@ -128,10 +176,11 @@ body {
     display: block;
 }
 
-.ico-home:after{
+.ico-home:after {
     content: '';
     position: relative;
-    right:-50px; top:0;
+    right: -50px;
+    top: 0;
     height: 32px;
     width: 1px;
     border-right: 1px solid #ddd;
@@ -147,12 +196,12 @@ a.ico-home:hover {
 }
 
 
-label, .btn {
-  width: 200px;
-  border-radius: 3px;
-  border: 1px solid #D1D3D4;
-  font-size: 15px;
-  font-weight: 300;
+label,
+.btn {
+    width: 200px;
+    border-radius: 3px;
+    border: 1px solid #D1D3D4;
+    font-weight: 300;
 }
 
 .btn {
@@ -167,7 +216,8 @@ label, .btn {
     color: #fff;
 }
 
-.btn:active, .btn:focus {
+.btn:active,
+.btn:focus {
     outline: 0;
 }
 
@@ -177,11 +227,12 @@ label, .btn {
 
 /* hide input */
 input.radio:empty {
-    display:none;
+    display: none;
 }
 
 /* style label */
-input.radio:empty ~ label, input[type="button"] {
+input.radio:empty~label,
+input[type="button"] {
     position: relative;
     float: left;
     line-height: 32px;
@@ -199,18 +250,18 @@ input.radio:empty ~ label, input[type="button"] {
 
 
 /* toggle hover */
-input.radio ~ label:hover {
-    background-color:#555;
+input.radio~label:hover {
+    background-color: #555;
 }
 
-input.radio:checked ~ label {
-    background-color:#eee;
+input.radio:checked~label {
+    background-color: #eee;
     color: #000;
     border-color: #eee;
 }
 
 .radio-group .col {
-    margin:0;
+    margin: 0;
 }
 
 .radio-group .col label {
@@ -247,11 +298,11 @@ canvas {
     clear: both;
 }
 
-.col{
-  float:left;
-  margin-right: 20px;
+.col {
+    float: left;
+    margin-right: 20px;
 }
 
-.col-right{
-  float:right;
+.col-right {
+    float: right;
 }
