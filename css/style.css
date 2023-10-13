@@ -18,9 +18,7 @@ a:hover {
 }
 
 .grid-container {
-    max-width: 1200px;
-    min-width: 400px;
-    margin: 100px auto 0;
+    margin: 100px 0 0;
 }
 
 .grid {
@@ -30,6 +28,7 @@ a:hover {
     gap: 32px;
     justify-items: center;
     padding: 0 32px;
+    margin: 0 auto;
 }
 
 .grid-tile {
@@ -50,23 +49,23 @@ a:hover {
     transform: scale(1.05);
 }
 
-@media (min-width: 600px) {
+@media (min-width: 696px) {
     .grid {
         grid-template-columns: repeat(2, 1fr);
     }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1028px) {
     .grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
 .grid-header {
-    min-width: 600px;
-    margin-bottom: 64px;
+    min-width: 400px;
     padding: 0 32px;
     text-align: center;
+    margin: 96px auto 64px;
 }
 
 .grid-title {
